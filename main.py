@@ -37,7 +37,7 @@ if __name__ == "__main__":
     # Configuración común
     directorio_actual = os.path.dirname(os.path.abspath(__file__))
     print("\n" + "=" * 50)
-    print("EJERCICIO 1 - FOURIER STEGANOGRAPHY")
+    print("EJERCICIO 1 - LSB STEGANOGRAPHY")
     print("=" * 50)
 
     imagen_original = os.path.join(directorio_actual, "portadora.png")
