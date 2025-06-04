@@ -145,3 +145,48 @@ def mostrar_resultados(portadora, estego, secreta_rec, precision, psnr_val):
     
     plt.tight_layout()
     plt.show()
+
+# -------------------------
+# Bloque principal
+# -------------------------
+def main():
+    try:
+        # Configuración
+        DELTA = 10
+        REDUNDANCIA = 10
+        TAMAÑO_PORTA = (1300, 1300)
+        TAMAÑO_SECRETA = (256, 256)
+        
+        print("=== CARGANDO IMÁGENES ===")
+        portadora = cargar_imagen_escala_grises("portadora.png", TAMAÑO_PORTA)
+        secreta = cargar_imagen_escala_grises("secreta.png", TAMAÑO_SECRETA)
+        
+        print("\n=== INSERTANDO MENSAJE ===")
+        estego_float, indices, _ = insertar_mensaje(
+            portadora, secreta, DELTA, REDUNDANCIA
+        )
+        estego_uint8 = np.clip(estego_float, 0, 255).astype(np.uint8)
+        Image.fromarray(estego_uint8).save("estego.png")
+        print("Imagen estego guardada: 'estego.png'")
+        
+        print("\n=== EXTRAYENDO MENSAJE ===")
+        secreta_rec, _ = extraer_mensaje(
+            estego_float, DELTA, secreta.shape, indices, REDUNDANCIA
+        )
+        Image.fromarray(secreta_rec.astype(np.uint8)).save("secreta_recuperada.png")
+        print("Imagen secreta recuperada: 'secreta_recuperada.png'")
+        
+        print("\n=== CALCULANDO MÉTRICAS ===")
+        precision, psnr_val = calcular_metricas(secreta, secreta_rec, portadora, estego_uint8)
+        print(f"Precisión de bits: {precision*100:.2f}%")
+        print(f"PSNR: {psnr_val:.2f} dB")
+        
+        print("\n=== MOSTRANDO RESULTADOS ===")
+        mostrar_resultados(portadora, estego_uint8, secreta_rec, precision, psnr_val)
+        
+    except Exception as e:
+        print(f"\n[ERROR] {str(e)}")
+        raise
+
+if __name__ == "__main__":
+    main()

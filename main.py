@@ -1,4 +1,17 @@
 import os
+from tkinter import Image
+from PIL import Image
+import numpy as np
+from skimage.metrics import peak_signal_noise_ratio as psnr
+
+from constants import (
+    DELTA,
+    REDUNDANCIA,
+    TAMAÑO_PORTA,
+    TAMAÑO_SECRETA
+)
+
+
 from ej1_functions import (
     mostrar_info_capacidad,
     codificar_lsb,
@@ -12,20 +25,22 @@ from ej2_functions import (
 )
 
 from ej3_functions import (
-    codificar_fourier_delta,
-    decodificar_fourier_delta
+   cargar_imagen_escala_grises,
+    insertar_mensaje,
+    ajustar_bit_q,
+    extraer_mensaje,
+    calcular_metricas,
+    mostrar_resultados
 )
 
 if __name__ == "__main__":
     # Configuración común
     directorio_actual = os.path.dirname(os.path.abspath(__file__))
-
-    # Ejemplo de uso para LSB Steganography
     print("\n" + "=" * 50)
-    print("DEMOSTRACIÓN LSB STEGANOGRAPHY")
+    print("EJERCICIO 1 - FOURIER STEGANOGRAPHY")
     print("=" * 50)
 
-    imagen_original = os.path.join(directorio_actual, "secreta.png")
+    imagen_original = os.path.join(directorio_actual, "portadora.png")
     imagen_estego = os.path.join(directorio_actual, "estego_lsb.png")
     mensaje = ("La tecnología ha transformado radicalmente la manera en que vivimos, trabajamos y nos comunicamos. " +
                "Gracias a los avances en inteligencia artificial, conectividad y automatización, las empresas pueden " +
@@ -49,10 +64,10 @@ if __name__ == "__main__":
 
     # Ejemplo de uso para Fourier Steganography
     print("\n" + "=" * 50)
-    print("DEMOSTRACIÓN FOURIER STEGANOGRAPHY")
+    print("EJERCICIO 2 - FOURIER STEGANOGRAPHY")
     print("=" * 50)
 
-    cover_path = os.path.join(directorio_actual, "portadora.jpg")
+    cover_path = os.path.join(directorio_actual, "portadora.png")
     secret_path = os.path.join(directorio_actual, "secreta.png")
     stego_path = os.path.join(directorio_actual, "estego_fourier.png")
     recovered_path = os.path.join(directorio_actual, "secreta_recuperada.png")
@@ -65,21 +80,37 @@ if __name__ == "__main__":
 
     except Exception as e:
         print(f"[ERROR] {e}")
-
-    # Ejemplo de uso para Fourier Delta Steganography
+        
+        
     print("\n" + "=" * 50)
-    print("DEMOSTRACIÓN FOURIER DELTA STEGANOGRAPHY")
+    print("EJERCICIO 3 - FOURIER STEGANOGRAPHY")
     print("=" * 50)
-
-    stego_delta_path = os.path.join(directorio_actual, "estego_fourier_delta.png")
-    recovered_delta_path = os.path.join(directorio_actual, "secreta_recuperada_delta.png")
-    DELTA = 10
-    dimensiones_secreto = (256, 256)
-
+    # Configuración
     try:
-        codificar_fourier_delta(cover_path, secret_path, stego_delta_path, DELTA)
-        decodificar_fourier_delta(stego_delta_path, recovered_delta_path, dimensiones_secreto, DELTA)
-        print(f"[INFO] Imagen secreta recuperada (Delta): {recovered_delta_path}")
-
+        print("=== CARGANDO IMÁGENES ===")
+        portadora = cargar_imagen_escala_grises("portadora.png", TAMAÑO_PORTA)
+        secreta = cargar_imagen_escala_grises("secreta.png", TAMAÑO_SECRETA)
+        
+        print("\n=== INSERTANDO MENSAJE ===")
+        estego_float, indices, _ = insertar_mensaje(
+            portadora, secreta, DELTA, REDUNDANCIA
+        )
+        estego_uint8 = np.clip(estego_float, 0, 255).astype(np.uint8)
+        Image.fromarray(estego_uint8).save("estego_delta.png")
+        print("Imagen estego guardada: 'estego_delta.png'")
+        
+        print("\n=== EXTRAYENDO MENSAJE ===")
+        secreta_rec, _ = extraer_mensaje(
+            estego_float, DELTA, secreta.shape, indices, REDUNDANCIA
+        )
+        Image.fromarray(secreta_rec.astype(np.uint8)).save("secreta_recuperada_delta.png")
+        print("Imagen secreta recuperada: 'secreta_recuperada_delta.png'")
+        
+        print("\n=== CALCULANDO MÉTRICAS ===")
+        precision, psnr_val = calcular_metricas(secreta, secreta_rec, portadora, estego_uint8)
+        print(f"Precisión de bits: {precision*100:.2f}%")
+        print(f"PSNR: {psnr_val:.2f} dB")
+        
     except Exception as e:
-        print(f"[ERROR] {e}")
+        print(f"\n[ERROR] {str(e)}")
+        raise
