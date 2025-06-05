@@ -11,7 +11,6 @@ from constants import (
     TAMAÑO_SECRETA
 )
 
-
 from ej1_functions import (
     mostrar_info_capacidad,
     codificar_lsb,
@@ -22,6 +21,7 @@ from ej1_functions import (
 from ej2_functions import (
     fourier_steganography_encode,
     fourier_steganography_decode,
+    binarizar_imagen
 )
 
 from ej3_functions import (
@@ -74,10 +74,24 @@ if __name__ == "__main__":
     SECRET_SIZE = 256
 
     try:
-        fourier_steganography_encode(cover_path, secret_path, stego_path)
-        fourier_steganography_decode(stego_path, recovered_path, SECRET_SIZE)
-        print(f"[INFO] Imagen secreta recuperada: {recovered_path}")
+        portadora = np.array(Image.open(cover_path).convert("L"))
+        secreta = np.array(Image.open(secret_path).convert("L"))
+        estego, indices, forma_secreta = fourier_steganography_encode(portadora, secreta)
+        estego_uint8 = np.clip(estego, 0, 255).astype(np.uint8)
+        Image.fromarray(estego_uint8).save(stego_path)
+        print(f"[FOURIER] Imagen estego guardada en: {stego_path}")
 
+        recuperada = fourier_steganography_decode(estego, forma_secreta, indices)
+        Image.fromarray(recuperada).save(recovered_path)
+        print(f"[FOURIER] Imagen secreta recuperada guardada en: {recovered_path}")
+
+        secreta_ajustada = np.array(Image.fromarray(secreta).resize((forma_secreta[1], forma_secreta[0]), Image.Resampling.LANCZOS))
+        bits_orig = binarizar_imagen(secreta_ajustada)
+        bits_rec = binarizar_imagen(recuperada)
+        precision = np.mean(bits_orig == bits_rec) * 100
+        print(f"[INFO] Precisión de recuperación: {precision:.2f}%")
+        print(f"[INFO] PSNR: {psnr(portadora, estego_uint8):.2f} dB")
+        print(f"[INFO] Imagen secreta recuperada: {recovered_path}")
     except Exception as e:
         print(f"[ERROR] {e}")
         
